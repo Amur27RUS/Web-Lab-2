@@ -197,11 +197,10 @@
     var rCheck = false;
 
 
+    //Чекбоксы R превращатся в радио.(Можно кликнуть на один чекбокс)
     function checktoradioR(){
-
       inputs= document.getElementsByClassName("input2");
       rCheck = true;
-
       unlockButton();
 
       for (var i=0; i<inputs.length; i++){
@@ -215,9 +214,11 @@
       }
     }
 
+    //Проверка, введён ли Y и правильно ли
     function checkY() {
       let err = document.getElementById("err2");
       let Y = this.Y.value;
+
 
       if (Y>=5) {
         err.hidden = false;
@@ -238,9 +239,16 @@
         unlockButton();
 
       }else if (Y>-5 && Y<5){
-        err.hidden = true;
-        yCheck=true;
-        unlockButton();
+        if(Y.length >=18){
+          //err.hidden = false;
+          //err.innerText = "May cause problems";
+          yCheck=true;
+          unlockButton();
+        }else{
+          err.hidden = true;
+          yCheck=true;
+          unlockButton();
+        }
 
       }else if (isNaN(Y)) {
         err.hidden = false;
@@ -249,9 +257,9 @@
         unlockButton();
 
       }
-
     }
 
+    //Проверка, введён ли R и правильно ли
     function checkR() {
       let err = document.getElementById("err3");
       let R = this.R.value;
@@ -275,9 +283,16 @@
         unlockButton();
 
       }else if (R>2 && R<5){
-        err.hidden = true;
-        rCheck=true;
-        unlockButton();
+        if(R.length >=18) {
+          //err.hidden = false;
+          //err.innerText = "May cause problems";
+          rCheck = true;
+          unlockButton();
+        }else {
+          err.hidden = true;
+          rCheck = true;
+          unlockButton();
+        }
 
       }else if (isNaN(R)) {
         err.hidden = false;
@@ -286,14 +301,15 @@
         unlockButton();
 
       }
-
     }
 
+    //срабатывает при нажатии на кнопку. Собирает все данные с ввода
     function validate(_form){
-
       let X = -20;
       let R = _form.R.value;
       let Y = _form.Y.value;
+
+      localStorage.setItem("R", R);
 
       let xs = document.forms["main-form"]["X"];
 
@@ -305,11 +321,10 @@
 
       if ((Y !== "") && R !== -20 && X !== -20) {
         makeFrame("result_frame");
-        createCanvas('canvas', X, Y, R);
         return true;
       }
     }
-
+    //Проверка, введён ли X и правильно ли
     function checkX(){
       let err = document.getElementById("err1");
       let count = 0;
@@ -333,6 +348,7 @@
       }
     }
 
+    //Превращает чекбоксы X  в радио.
     function checktoradioX(){
       inputs= document.getElementsByClassName("input1");
       xCheck = true;
@@ -350,6 +366,7 @@
       }
     }
 
+    //Создаёт iFrame (м б убрать)
     function makeFrame(id){
       var iframe = document.getElementById(id);
       iframe.style.display="block";
@@ -362,12 +379,14 @@
       }
     }
 
+    //фитинг для iFrame
     function frameFitting(id) {
       document.getElementById(id).width = '100%';
       document.getElementById(id).height = document.getElementById(id).contentWindow.
               document.body.scrollHeight+35+'px';
     }
 
+    //Провераяет, можно ли разблокировать кнопку
     function unlockButton(){
       var btn = document.getElementById("button");
       btn.disabled = !(yCheck === true && rCheck === true && xCheck === true);
@@ -390,7 +409,8 @@
 
   <!--SEND TO SERVLET-->
   <form class="form" id="main-form" action="controller" method="post" onsubmit="validate(this);" target="_self">
-    <p style="margin-top: 0px;" id="text">Программа посчитает попадание точки в график. Вам нужно задать значение координат X, Y и R.</p>
+    <p style="margin-top: 0px;" id="text">Программа посчитает попадание точки в график. Вам нужно задать значение координат X, Y и R.
+      Также можно задать R и нажать на график.</p>
     <HR color="gray">
 
     <!--TABLE FOR X-->
@@ -400,6 +420,7 @@
           <td></td><td><input class="input1" type="checkbox" id="x1" value="-2" name="X" onchange="checktoradioX()">-2</td>
           <td><input class="input1" type="checkbox" id="x2" value="-1.5" name="X" onchange="checktoradioX()">-1.5</td>
           <td><input class="input1" type="checkbox" id="x3" value="-1" name="X" onchange="checktoradioX()">-1</td>
+
         </tr>
 
         <tr>
@@ -420,6 +441,7 @@
     <!--INPUT Y BLOCK-->
     <div class="textblock">
       <input type="hidden" name="offset">
+      <input type="hidden" name="Type" value="noAjax">
 
       <label for="Y" class="inputs">Y = </label>
       <input class="inputs" type="text" id="Y" name="Y" placeholder="(-5..5)" size="6" pattern="((0|-?[1-4])(\.[0-9]*[1-9]+)?)|(5|-5)" onkeyup="checkY()" >
@@ -444,10 +466,11 @@
 
 <!--CANVAS BLOCK-->
 <div class="canvas container">
-  <form action="controller" method="post" id="hiddenForm">
+  <form action="controller" method="get" id="hiddenForm">
     <input type="hidden" id="hiddenX" name="X" value="">
     <input type="hidden" id="hiddenY" name="Y" value="">
     <input type="hidden" id="hiddenR" name="R" value="">
+    <input type="hidden"name="Type" value="Ajax">
     <input type="hidden" name="offset">
   </form>
   <canvas id="canvas" style="background-color:#ffffff; border-radius: 20px;"
@@ -455,14 +478,32 @@
   <p id="err4" class="error" hidden = true>Enter R first!</p>
 
   <script>
+
     let offsetField = document.forms["main-form"]["offset"];
     let offsetField2 = document.forms["hiddenForm"]["offset"];
+    let RField = document.getElementById("R");
+    RField.value = localStorage.getItem("R");
+
+    //if нужен для того, чтобы после перезапуска страницы с уже введённым R, пользователю нужно было только ввести X и Y,
+    //а не записывать X, Y и перезаписывать R.
+    if (localStorage.getItem("R") > 2 && localStorage.getItem("R") < 5){
+      rCheck = true;
+    }
+
+
+    localStorage.clear();
+
     let canvas = document.getElementById("canvas");
     context = canvas.getContext("2d");
     canvas.addEventListener("click", handleCanvasClick);
     offsetField.value = new Date().getTimezoneOffset();
     offsetField2.value = new Date().getTimezoneOffset();
 
+
+
+
+
+    //ОТРИСОВКА ОДНОЙ ТОЧКИ НА КАРТЕ
     function drawDot(x, y, color) {
       let i = 25;
       context.fillStyle = color;
@@ -471,6 +512,7 @@
       context.fill();
     }
 
+   //ОТРИСОВКА ВСЕХ ТОЧЕК, ЕСЛИ НА СТРАНИЦЕ ЕСТЬ ТАБЛИЦА С ИСТОРИЕЙ
     function drawAllDots() {
       let R = document.getElementById("R");
       let r = R.value;
@@ -482,11 +524,33 @@
 
       for(let i=0; i<historyX.length; i++){
 
-          drawDot(Number(historyX[i].innerHTML), Number(historyY[i].innerHTML), (String(historyResult[i].innerHTML)==="true"  ? "lime":"red"));
+          drawDot(Number(historyX[i].innerHTML), Number(historyY[i].innerHTML), (((Number(historyX[i].innerHTML)) <=0
+                  && (Number(historyY[i].innerHTML))>=0 && (Number(historyX[i].innerHTML))>=-r/2
+                  && (Number(historyY[i].innerHTML))<=r)
+                  || ((Number(historyX[i].innerHTML))>=0 && (Number(historyY[i].innerHTML))<=0
+                          && (Number(historyX[i].innerHTML))*(Number(historyX[i].innerHTML))+(Number(historyY[i].innerHTML))*(Number(historyY[i].innerHTML))<=r/2*r/2)
+                  || ((Number(historyX[i].innerHTML))>=0 && (Number(historyY[i].innerHTML))>=0
+                          && (Number(historyY[i].innerHTML))<=(r/2-(Number(historyX[i].innerHTML)))))  ? "lime":"red");
       }
     }
     drawGraph();
 
+
+
+    //Делает AJAX запрос при нажатии на канвас
+    function doAjax(x, y, r){
+
+      let req = new XMLHttpRequest();
+      req.open("POST", document.documentURI +"checkservlet", true);
+      console.log(req.responseText);
+      req.onload = ()=>changePage(JSON.parse(req.responseText));
+      req.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+      req.send("X="+x+"&Y="+y+"&R="+r+"&offset="+offsetField.value+"&Type='Ajax'");
+
+    }
+
+
+    //ОБРАБОТКА НАЖАТИЯ НА CANVAS
     function handleCanvasClick(event) {
       let err = document.getElementById("err4");
       let i = 25;
@@ -499,17 +563,22 @@
         let R = document.getElementById("R");
         let r = R.value;
 
+        doAjax(x, y, r);
+
         let form = document.getElementById("hiddenForm");
         document.getElementById("hiddenX").value = x;
         document.getElementById("hiddenY").value = y;
         document.getElementById("hiddenR").value = r;
-        form.submit();
+        // form.submit();
+
+
 
       }else{
         err.hidden = false;
       }
     }
 
+    //ОТРИСОВКА ОСЕЙ ГРАФИКА ПРИ ВХОДЕ НА СТРАНИЦУ
     function drawGraph() {
 
       //очистка
@@ -560,6 +629,8 @@
       context.stroke();
     }
 
+
+    //ОТРИСОВКА ФИГУР НА ГРАФИКЕ, ЕСЛИ ВВЕДЁН R
     function drawFigures() {
       let R = document.getElementById("R");
       let r = R.value;
@@ -588,7 +659,7 @@
         context.fillStyle = "blue";
         context.fill();
         context.stroke();
-        
+
         //ТРЕУГОЛЬНИК
         context.beginPath();
         context.moveTo(150, 150);
@@ -651,6 +722,7 @@
 
         drawAllDots();
 
+        //ЕСЛИ R ОЧИЩЕН, ТО УБИРАЮТСЯ И ФИГУРЫ
       }else if(r === ""){
         context.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -747,14 +819,18 @@
 
     <h2 style="text-align: center; margin-top: 10px">History:</h2>
     <HR color="#4bb6a7" width="400px">
+
+
+  <table id="result-table">
+    <tr id="table-headers"><th>X</th><th>Y</th><th>R</th><th>Result</th><th>Time</th></tr>
+
+<%--    Проверяем, если элементов в истории > 0, то показываем таблицу с историей--%>
     <%
       List<Dots> list = new ArrayList<Dots>(history.getList());%>
       <%if(list.size() > 0){
         Collections.reverse(list);
     %>
-  <table id="result-table">
 
-      <tr id="table-headers"><th>X</th><th>Y</th><th>R</th><th>Result</th><th>Time</th></tr>
 
     <%for(Dots d : list){%>
     <tr>
@@ -767,6 +843,67 @@
     <%}%>
     <%}%>
   </table>
+
+  <script>
+    drawFigures();
+    drawAllDots();
+
+    //Функция строит таблицу для AJAX запроса, а также ставит точку ну или же...
+    //...добавляет элемент в таблицу с историей при нажатии на канвас
+    function changePage(dot){
+      let R = document.getElementById("R");
+      let r = R.value;
+      let color = "";
+      let result;
+
+      if(((dot.x <=0 && dot.y>=0 && dot.x>=-r/2 && dot.y<=r) || (dot.x>=0 && dot.y<=0
+              && dot.x*dot.x+dot.y*dot.y<=r/2*r/2) ||
+              (dot.x>=0 && dot.y>=0 && dot.y<=(r/2-dot.x)))){
+        color = "lime";
+      }else{
+        color = "red";
+      }
+      if (color === "lime"){
+        result = "true";
+      }else{
+        result = "false";
+      }
+
+
+      drawDot(dot.x, dot.y, color);
+
+      if (!document.getElementById("result-table")) {
+
+        let table = document.createElement("table");
+        table.id = "result-table";
+        let headers = document.createElement("tr");
+        headers.id = "table-headers";
+        headers.innerHTML = "<th>X</th><th>Y</th><th>R</th><th>RESULT</th><th>TIME</th>";
+        document.getElementsByClassName("main")[0].append(table);
+
+        table.append(headers);
+
+      }
+
+      let dotR = dot.r;
+      /*Если r=3 или r=4, то добавляем .0 Нужно для  того, чтобы таблица выглядела красиво)
+      Когда AJAXом отправляем запрос, то r берётся 3, а когда по кнопке, то 3.0 И чтобы везде были одинаковые числа,
+      то мы к 3 или 4 добавляем .0 :)
+      */
+      if(dot.r === 3 || dot.r === 4){
+        dotR = dot.r + ".0";
+      }
+
+
+      let row = document.createElement("tr");
+      row = document.getElementById("result-table").insertRow(1);
+      row.innerHTML = " <tr><td class=\"historyX\">" + dot.x + "</td><td class=\"historyY\">" + dot.y + "</td><td class=\"historyR\">" + dotR + "</td><td class=\"historyResult\">"+result+"</td><td>" + dot.time + "</td></tr>";
+
+
+    }
+
+  </script>
+
 </div>
 
 <!--FOOTER:-->
